@@ -22,7 +22,7 @@ rows := [][]string{
     {"3", "装备3", "装备3详细信息", "true", ""},
 }
 m := make(map[int32]*ItemCfg)
-err := ReadCsvFromDataMap(rows, m, &defaultOption)
+err := ReadCsvFromDataMap(rows, m, nil)
 ```
 
 # csv数据转换成slice
@@ -34,7 +34,7 @@ rows := [][]string{
     {"3", "装备3", "装备3详细信息", "true", ""},
 }
 s := make([]*ItemCfg, 0)
-s,_ = ReadCsvFromDataSlice(rows, s, &defaultOption)
+s,_ = ReadCsvFromDataSlice(rows, s, nil)
 ```
 
 # key-value格式的csv数据转换成对象
@@ -51,7 +51,7 @@ rows := [][]string{
   {"Language", "Simplified Chinese", "语言设置"},
 }
 settings := new(Settings)
-err := ReadCsvFromDataObject(rows, settings, &defaultOption)
+err := ReadCsvFromDataObject(rows, settings, nil)
 ```
 
 # 自定义解析接口
