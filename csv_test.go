@@ -283,7 +283,7 @@ func TestReadCsvFromDataObject(t *testing.T) {
 
 func TestParseNestString(t *testing.T) {
 	s := "CfgId_1#ConsumeItems_{CfgId_1#Num_2;CfgId_2#Num_3}#Rewards_{CfgId_1#Num_1}#CountLimit_2"
-	pairs := ParseNestString(s, DefaultOption.PairSeparator, DefaultOption.KvSeparator, "ConsumeItems", "Rewards")
+	pairs := ParseNestString(s, &DefaultOption, "ConsumeItems", "Rewards")
 	for _, pair := range pairs {
 		t.Logf("%v %v", pair.Key, pair.Value)
 	}
@@ -309,7 +309,7 @@ func TestNestStruct(t *testing.T) {
 	option.RegisterConverterByType(reflect.TypeOf(childrenType), func(obj any, columnName, fieldStr string) any {
 		newChildren := make([]*Child, 0)
 		// Name_a#Items_{CfgId_1#Num_1;CfgId_2#Num_1};Name_b#Items_{CfgId_1#Num_2;CfgId_2#Num_2}
-		pairsSlice := ParseNestStringSlice(fieldStr, option.PairSeparator, option.KvSeparator, "Items")
+		pairsSlice := ParseNestStringSlice(fieldStr, &option, "Items")
 		for _, pairs := range pairsSlice {
 			child := &Child{}
 			objVal := reflect.ValueOf(child).Elem()

@@ -106,7 +106,7 @@ func ConvertStringToFieldValue(object, fieldVal reflect.Value, columnName, field
 				return
 			}
 			// 如CfgId_1#Num_2
-			pairs := ParsePairString(fieldString, option.PairSeparator, option.KvSeparator)
+			pairs := ParsePairString(fieldString, option)
 			for _, pair := range pairs {
 				subFieldVal := fieldVal.FieldByName(pair.Key)
 				if !subFieldVal.IsValid() {
@@ -176,7 +176,7 @@ func ConvertStringToFieldValue(object, fieldVal reflect.Value, columnName, field
 			fieldKeyType := fieldVal.Type().Key()
 			fieldValueType := fieldVal.Type().Elem()
 			converter, convertToElem := option.GetConverterByTypePtrOrStruct(fieldValueType)
-			pairs := ParsePairString(fieldString, option.PairSeparator, option.KvSeparator)
+			pairs := ParsePairString(fieldString, option)
 			for _, pair := range pairs {
 				fieldKeyValue := ConvertStringToRealType(fieldKeyType, pair.Key)
 				var fieldValueValue any
@@ -227,19 +227,25 @@ func convertPairString(pairs []*StringPair, cellString, pairSeparator, kvSeparat
 }
 
 // 把K1_V1#K2_V2#K3_V3转换成StringPair数组(如[{K1,V1},{K2,V2},{K3,V3}]
-func ParsePairString(cellString, pairSeparator, kvSeparator string) []*StringPair {
+func ParsePairString(cellString string, option *CsvOption) []*StringPair {
+	if option == nil {
+		option = &DefaultOption
+	}
 	var pairs []*StringPair
-	return convertPairString(pairs, cellString, pairSeparator, kvSeparator)
+	return convertPairString(pairs, cellString, option.PairSeparator, option.KvSeparator)
 }
 
 // 解析有嵌套结构的字符串
 // 如 CfgId_1#ConsumeItems_{CfgId_1#Num_2;CfgId_2#Num_3}#Rewards_{CfgId_1#Num_1}#CountLimit_2
 // 解析成 [{CfgId,1},{ConsumeItems,CfgId_1#Num_2;CfgId_2#Num_3},{Rewards,CfgId_1#Num_1},{CountLimit,2}]
-func ParseNestString(cellString, pairSeparator, kvSeparator string, nestFieldNames ...string) []*StringPair {
+func ParseNestString(cellString string, option *CsvOption, nestFieldNames ...string) []*StringPair {
+	if option == nil {
+		option = &DefaultOption
+	}
 	var pairs []*StringPair
 	s := cellString
 	for _, nestFieldName := range nestFieldNames {
-		keyword := nestFieldName + kvSeparator + "{" // 如ConsumeItems_{
+		keyword := nestFieldName + option.KvSeparator + "{" // 如ConsumeItems_{
 		beginPos := strings.Index(s, keyword)
 		if beginPos >= 0 {
 			endPos := strings.Index(s, "}")
@@ -257,18 +263,18 @@ func ParseNestString(cellString, pairSeparator, kvSeparator string, nestFieldNam
 			}
 		}
 	}
-	return convertPairString(pairs, s, pairSeparator, kvSeparator)
+	return convertPairString(pairs, s, option.PairSeparator, option.KvSeparator)
 }
 
 // Name_a#Items_{CfgId_1#Num_1;CfgId_2#Num_1};Name_b#Items_{CfgId_1#Num_2;CfgId_2#Num_2}
-func ParseNestStringSlice(cellString, pairSeparator, kvSeparator string, nestFieldNames ...string) [][]*StringPair {
+func ParseNestStringSlice(cellString string, option *CsvOption, nestFieldNames ...string) [][]*StringPair {
 	var pairsSlice [][]*StringPair
 	idCounter := 0
 	replaceKeys := make(map[int]*StringPair)
 	s := cellString
 	for _, nestFieldName := range nestFieldNames {
 		for {
-			keyword := nestFieldName + kvSeparator + "{" // 如Items_{
+			keyword := nestFieldName + option.KvSeparator + "{" // 如Items_{
 			beginPos := strings.Index(s, keyword)
 			if beginPos < 0 {
 				break
@@ -281,21 +287,21 @@ func ParseNestStringSlice(cellString, pairSeparator, kvSeparator string, nestFie
 					Key:   nestFieldName,
 					Value: nestFieldValue,
 				}
-				old := nestFieldName + kvSeparator + "{" + nestFieldValue + "}"
+				old := nestFieldName + option.KvSeparator + "{" + nestFieldValue + "}"
 				// Items_{CfgId_1#Num_1;CfgId_2#Num_1}替换为Items_idCounter
-				s = strings.Replace(s, old, nestFieldName+kvSeparator+strconv.Itoa(idCounter), 1)
+				s = strings.Replace(s, old, nestFieldName+option.KvSeparator+strconv.Itoa(idCounter), 1)
 			} else {
 				break
 			}
 		}
 	}
 	// Name_a#Items_1;Name_b#Items_2
-	elemSlice := strings.Split(s, ";")
+	elemSlice := strings.Split(s, option.SliceSeparator)
 	for _, elem := range elemSlice {
 		var pairs []*StringPair
-		pairSlice := strings.Split(elem, pairSeparator)
+		pairSlice := strings.Split(elem, option.PairSeparator)
 		for _, pairString := range pairSlice {
-			kv := strings.SplitN(pairString, kvSeparator, 2)
+			kv := strings.SplitN(pairString, option.KvSeparator, 2)
 			if len(kv) != 2 {
 				continue
 			}
