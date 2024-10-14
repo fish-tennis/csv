@@ -93,3 +93,8 @@ err := ReadCsvFromDataMap(rows, m, &option)
 
 # 嵌套结构
 详见csv_test.go里的TestNestStruct用例
+
+# 更多示例
+游戏项目中经常使用csv作为配置文件,并需要支持热更新(服务器不重启的情况下,重新加载配置数据)
+
+可参考[gserver](https://github.com/fish-tennis/gserver)中的配置数据的使用方式(https://github.com/fish-tennis/gserver/tree/main/cfg)
