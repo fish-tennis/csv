@@ -1,7 +1,7 @@
 # csv
-parse csv data to object
+parse csv data to object(struct,protobuf,map[K]V,slice[E])
 
-读取csv数据,转换成对象,支持自定义解析接口,以及结构嵌套(支持2层)
+读取csv数据,转换成对象(struct,protobuf,map[K]V,slice[E]等),支持自定义解析接口,以及结构嵌套(支持2层)
 
 # 示例
 ```go
