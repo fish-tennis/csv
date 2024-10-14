@@ -273,26 +273,30 @@ func ParseNestStringSlice(cellString string, option *CsvOption, nestFieldNames .
 	replaceKeys := make(map[int]*StringPair)
 	s := cellString
 	for _, nestFieldName := range nestFieldNames {
+		remain := s
 		for {
 			keyword := nestFieldName + option.KvSeparator + "{" // 如Items_{
-			beginPos := strings.Index(s, keyword)
+			beginPos := strings.Index(remain, keyword)
 			if beginPos < 0 {
 				break
 			}
-			endPos := strings.Index(s, "}")
-			if endPos > beginPos {
-				nestFieldValue := s[beginPos+len(keyword) : endPos]
-				idCounter++
-				replaceKeys[idCounter] = &StringPair{
-					Key:   nestFieldName,
-					Value: nestFieldValue,
-				}
-				old := nestFieldName + option.KvSeparator + "{" + nestFieldValue + "}"
-				// Items_{CfgId_1#Num_1;CfgId_2#Num_1}替换为Items_idCounter
-				s = strings.Replace(s, old, nestFieldName+option.KvSeparator+strconv.Itoa(idCounter), 1)
-			} else {
+			// 从beginPos后面的位置查找}
+			after := remain[beginPos + len(keyword):] // 如CfgId_1#Num_1;CfgId_2#Num_1}
+			endPos := strings.Index(after, "}")
+			if endPos < 0 {
 				break
 			}
+			endPos += beginPos+len(keyword)
+			nestFieldValue := remain[beginPos+len(keyword) : endPos] // 如CfgId_1#Num_1;CfgId_2#Num_1
+			idCounter++
+			replaceKeys[idCounter] = &StringPair{
+				Key:   nestFieldName,
+				Value: nestFieldValue,
+			}
+			old := keyword + nestFieldValue + "}"
+			// Items_{CfgId_1#Num_1;CfgId_2#Num_1}替换为Items_idCounter
+			s = strings.Replace(s, old, nestFieldName+option.KvSeparator+strconv.Itoa(idCounter), 1)
+			remain = remain[endPos+1:]
 		}
 	}
 	// Name_a#Items_1;Name_b#Items_2
