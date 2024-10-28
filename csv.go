@@ -27,6 +27,18 @@ type CsvOption struct {
 	// 字段名数据行索引(>=0)
 	ColumnNameRowIndex int
 
+	// key-value格式的csv数据给对象赋值,数据行索引(>=0)
+	ObjectDataBeginRowIndex int
+
+	// 是否禁用protobuf的字段别名(struct tag里的name),默认不禁用
+	//  proto2示例 Num *int32 `protobuf:"varint,1,opt,name=num"`
+	//  proto3示例 Num int32  `protobuf:"varint,1,opt,name=num,proto3"`
+	DisableProtobufAliasName bool
+
+	// 是否禁用json的字段别名(struct tag里的name),默认不禁用
+	//  示例 Num *int32 `json:"num,omitempty"`
+	DisableJsonAliasName bool
+
 	// 数组分隔符
 	// 如数组分隔符为;时,则1;2;3可以表示[1,2,3]的数组
 	SliceSeparator string
@@ -225,8 +237,8 @@ func ReadCsvFromDataObject[V any](rows [][]string, v V, option *CsvOption) error
 	if len(rows[0]) < 2 {
 		return errors.New("column count must >= 2")
 	}
-	if option.DataBeginRowIndex < 1 {
-		return errors.New("DataBeginRowIndex must >=1")
+	if option.ObjectDataBeginRowIndex < 1 {
+		return errors.New("ObjectDataBeginRowIndex must >=1")
 	}
 	typ := reflect.TypeOf(v) // type of v, 如*pb.ItemCfg or pb.ItemCfg
 	val := reflect.ValueOf(v)
@@ -234,12 +246,25 @@ func ReadCsvFromDataObject[V any](rows [][]string, v V, option *CsvOption) error
 		return errors.New("v must be Ptr")
 	}
 	valElem := val.Elem() // *pb.ItemCfg -> pb.ItemCfg
-	for rowIndex := option.DataBeginRowIndex; rowIndex < len(rows); rowIndex++ {
+	// protobuf alias name map
+	var aliasNames map[string]string
+	for rowIndex := option.ObjectDataBeginRowIndex; rowIndex < len(rows); rowIndex++ {
 		row := rows[rowIndex]
 		// key-value的固定格式,列名不用
 		columnName := row[0]
 		fieldString := row[1]
 		fieldVal := valElem.FieldByName(columnName)
+		if !fieldVal.IsValid() {
+			if aliasNames == nil {
+				aliasNames = getAliasNameMap(valElem.Type(), option)
+			}
+			// xxx.proto里定义的字段名可能是cfg_id
+			// 生成的xxx.pb里面的字段名会变成CfgId
+			// 如果csv里面的列名使用cfg_id也要能解析
+			if realFieldName, ok := aliasNames[columnName]; ok {
+				fieldVal = valElem.FieldByName(realFieldName)
+			}
+		}
 		if fieldVal.Kind() == reflect.Ptr { // 指针类型的字段,如 Name *string
 			fieldObj := reflect.New(fieldVal.Type().Elem()) // 如new(string)
 			fieldVal.Set(fieldObj)                          // 如 obj.Name = new(string)

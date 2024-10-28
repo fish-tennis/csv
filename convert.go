@@ -18,10 +18,23 @@ func ConvertCsvLineToValue(valueType reflect.Type, row []string, columnNames []s
 	if valueType.Kind() == reflect.Struct {
 		newObject = newObject.Elem() // *pb.ItemCfg -> pb.ItemCfg
 	}
+	// protobuf alias name map
+	var aliasNames map[string]string
 	for columnIndex := 0; columnIndex < len(columnNames); columnIndex++ {
 		columnName := columnNames[columnIndex]
 		fieldString := row[columnIndex]
 		fieldVal := newObjectElem.FieldByName(columnName)
+		if !fieldVal.IsValid() {
+			if aliasNames == nil {
+				aliasNames = getAliasNameMap(valueElemType, option)
+			}
+			// xxx.proto里定义的字段名可能是cfg_id
+			// 生成的xxx.pb里面的字段名会变成CfgId
+			// 如果csv里面的列名使用cfg_id也要能解析
+			if realFieldName, ok := aliasNames[columnName]; ok {
+				fieldVal = newObjectElem.FieldByName(realFieldName)
+			}
+		}
 		if fieldVal.Kind() == reflect.Ptr { // 指针类型的字段,如 Name *string
 			fieldObj := reflect.New(fieldVal.Type().Elem()) // 如new(string)
 			fieldVal.Set(fieldObj)                          // 如 obj.Name = new(string)
@@ -281,12 +294,12 @@ func ParseNestStringSlice(cellString string, option *CsvOption, nestFieldNames .
 				break
 			}
 			// 从beginPos后面的位置查找}
-			after := remain[beginPos + len(keyword):] // 如CfgId_1#Num_1;CfgId_2#Num_1}
+			after := remain[beginPos+len(keyword):] // 如CfgId_1#Num_1;CfgId_2#Num_1}
 			endPos := strings.Index(after, "}")
 			if endPos < 0 {
 				break
 			}
-			endPos += beginPos+len(keyword)
+			endPos += beginPos + len(keyword)
 			nestFieldValue := remain[beginPos+len(keyword) : endPos] // 如CfgId_1#Num_1;CfgId_2#Num_1
 			idCounter++
 			replaceKeys[idCounter] = &StringPair{
@@ -399,4 +412,64 @@ func ConvertStringToRealType(typ reflect.Type, s string) any {
 		slog.Error("unsupported kind", "kind", typ.Kind())
 	}
 	return nil
+}
+
+func getAliasNameMap(elemType reflect.Type, option *CsvOption) map[string]string {
+	aliasNames := make(map[string]string)
+	if option.DisableProtobufAliasName && option.DisableJsonAliasName {
+		return aliasNames
+	}
+	for i := 0; i < elemType.NumField(); i++ {
+		fieldTyp := elemType.Field(i)
+		if !fieldTyp.IsExported() {
+			continue
+		}
+		if !option.DisableProtobufAliasName {
+			name := getProtobufNameFromStructTag(fieldTyp.Tag)
+			if name == "" {
+				continue
+			}
+			aliasNames[name] = fieldTyp.Name
+		}
+		if !option.DisableJsonAliasName {
+			name := getJsonNameFromStructTag(fieldTyp.Tag)
+			if name == "" {
+				continue
+			}
+			aliasNames[name] = fieldTyp.Name
+		}
+	}
+	return aliasNames
+}
+
+func getProtobufNameFromStructTag(tag reflect.StructTag) string {
+	tagString, ok := tag.Lookup("protobuf")
+	if !ok {
+		return ""
+	}
+	// proto2 Num *int32 `protobuf:"varint,1,opt,name=num"`
+	// proto3 Num int32  `protobuf:"varint,1,opt,name=num,proto3"`
+	nameIdx := strings.Index(tagString, "name=")
+	if nameIdx < 0 {
+		return ""
+	}
+	name := tagString[nameIdx+5:]
+	endIdx := strings.Index(name, ",")
+	if endIdx > 0 {
+		name = name[:endIdx]
+	}
+	return name
+}
+
+func getJsonNameFromStructTag(tag reflect.StructTag) string {
+	name, ok := tag.Lookup("json")
+	if !ok {
+		return ""
+	}
+	// Num int32  `json:"num,omitempty"`
+	endIdx := strings.Index(name, ",")
+	if endIdx > 0 {
+		name = name[:endIdx]
+	}
+	return name
 }

@@ -21,8 +21,8 @@ type ItemCfg struct {
 
 // 物品Id和数量
 type ItemNum struct {
-	CfgId int32 `json:"CfgId,omitempty"` // 物品配置id
-	Num   int32 `json:"Num,omitempty"`   // 物品数量
+	CfgId int32 `json:"CfgId,omitempty" protobuf:"varint,1,opt,name=cfg_id"`   // 物品配置id
+	Num   int32 `json:"Num,omitempty" protobuf:"varint,1,opt,name=num,proto3"` // 物品数量
 }
 
 // 模拟一个protobuf定义的枚举
@@ -335,5 +335,26 @@ func TestNestStruct(t *testing.T) {
 				t.Logf("Children[%v].Items[%v]:%v", i, j, item)
 			}
 		}
+	}
+}
+
+func TestAliasName(t *testing.T) {
+	type s struct {
+		CfgId   int32  `json:"cfgid,omitempty" protobuf:"varint,1,opt,name=cfg_id"`
+		StrName string `json:"strname,omitempty" protobuf:"varint,1,opt,name=str_name,proto3"`
+	}
+	rows := [][]string{
+		{"cfgid", "str_name"},
+		{"1", "abc"},
+		{"2", "def"},
+		{"3", "ghi"},
+	}
+	m := make(map[int32]*s)
+	err := ReadCsvFromDataMap(rows, m, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, item := range m {
+		t.Logf("%v", item)
 	}
 }
