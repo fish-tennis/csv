@@ -21,7 +21,7 @@ func ConvertCsvLineToValue(valueType reflect.Type, row []string, columnNames []s
 	// protobuf alias name map
 	var aliasNames map[string]string
 	for columnIndex := 0; columnIndex < len(columnNames); columnIndex++ {
-		columnName := columnNames[columnIndex]
+		columnName := strings.TrimSpace(columnNames[columnIndex])
 		fieldString := row[columnIndex]
 		fieldVal := newObjectElem.FieldByName(columnName)
 		if !fieldVal.IsValid() {
