@@ -59,7 +59,7 @@ var (
 
 func TestReadCsvFromDataProto(t *testing.T) {
 	rows := [][]string{
-		{"CfgId", "Name", "Detail", "Unique", "unknownColumnTest"},
+		{"CfgId ", " Name ", "Detail", "Unique", "unknownColumnTest"},
 		{"1", "普通物品1", "普通物品1详细信息", "false", "123"},
 		{"2", "普通物品2", "普通物品2详细信息", "false", "test"},
 		{"3", "装备3", "装备3详细信息", "true", ""},
