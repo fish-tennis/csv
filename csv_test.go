@@ -13,16 +13,22 @@ func init() {
 
 // 模拟一个物品配置结构
 type ItemCfg struct {
-	CfgId  int32  `json:"CfgId,omitempty"`  // 配置id
-	Name   string `json:"Name,omitempty"`   // 物品名
-	Detail string `json:"Detail,omitempty"` // 物品描述
-	Unique bool   `json:"Unique,omitempty"` // 是否是不可叠加的物品
+	CfgId  int32   `json:"CfgId,omitempty"`   // 配置id
+	Name   string  `json:"Name,omitempty"`    // 物品名
+	Detail string  `json:"Detail,omitempty"`  // 物品描述
+	Unique bool    `json:"Unique,omitempty"`  // 是否是不可叠加的物品
+	Args   CfgArgs `json:"CfgArgs,omitempty"` // 配置参数
 }
 
 // 物品Id和数量
 type ItemNum struct {
 	CfgId int32 `json:"CfgId,omitempty" protobuf:"varint,1,opt,name=cfg_id"`   // 物品配置id
 	Num   int32 `json:"Num,omitempty" protobuf:"varint,1,opt,name=num,proto3"` // 物品数量
+}
+
+type CfgArgs struct {
+	CfgId int32   `protobuf:"varint,1,opt,name=CfgId,proto3" json:"CfgId,omitempty"`      // 配置id
+	Args  []int32 `protobuf:"varint,2,rep,packed,name=Args,proto3" json:"Args,omitempty"` // 参数
 }
 
 // 模拟一个protobuf定义的枚举
@@ -246,10 +252,10 @@ func TestMapReflect(t *testing.T) {
 
 func TestReadCsvFromDataSlice(t *testing.T) {
 	rows := [][]string{
-		{"CfgId", "Name", "Detail", "Unique", "unknownColumnTest"},
-		{"1", "普通物品1", "普通物品1详细信息", "false", "123"},
-		{"2", "普通物品2", "普通物品2详细信息", "false", "test"},
-		{"3", "装备3", "装备3详细信息", "true", ""},
+		{"CfgId", "Name", "Detail", "Unique", "Args", "unknownColumnTest"},
+		{"1", "普通物品1", "普通物品1详细信息", "false", "CfgId_1#Args_1;2;3", "123"},
+		{"2", "普通物品2", "普通物品2详细信息", "false", "CfgId_2#Args_4;5;6", "test"},
+		{"3", "装备3", "装备3详细信息", "true", "", ""},
 	}
 	s := make([]*ItemCfg, 0)
 	newSlice, err := ReadCsvFromDataSlice(rows, s, nil)
