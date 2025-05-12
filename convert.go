@@ -48,7 +48,9 @@ func ConvertCsvLineToValue(valueType reflect.Type, row []string, columnNames []s
 // 字段赋值,根据字段的类型,把字符串转换成对应的值
 func ConvertStringToFieldValue(object, fieldVal reflect.Value, columnName, fieldString string, option *CsvOption, isSubStruct bool) {
 	if !fieldVal.IsValid() {
-		slog.Debug("unknown column", "columnName", columnName)
+		if _, ok := option.ignoreColumns[columnName]; !ok {
+			slog.Error("unknown column", "columnName", columnName)
+		}
 		return
 	}
 	if !fieldVal.CanSet() {

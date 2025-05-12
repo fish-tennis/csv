@@ -251,6 +251,7 @@ func TestMapReflect(t *testing.T) {
 }
 
 func TestReadCsvFromDataSlice(t *testing.T) {
+	DefaultOption.IgnoreColumn("unknownColumnTest")
 	rows := [][]string{
 		{"CfgId", "Name", "Detail", "Unique", "Args", "unknownColumnTest"},
 		{"1", "普通物品1", "普通物品1详细信息", "false", "CfgId_1#Args_1;2;3", "123"},

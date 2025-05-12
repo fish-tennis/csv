@@ -68,6 +68,9 @@ type CsvOption struct {
 	customFieldConvertersByColumnName map[string]FieldConverter
 	// 把csv的字符串转换成其他对象 以字段类型作为关键字
 	customFieldConvertersByType map[reflect.Type]FieldConverter
+
+	// 忽略的列名,如单纯的注释列
+	ignoreColumns map[string]struct{}
 }
 
 // 注册列名对应的转换接口
@@ -117,6 +120,16 @@ func (co *CsvOption) GetConverterByTypePtrOrStruct(typ reflect.Type) (converter 
 		}
 	}
 	return
+}
+
+// 设置需要忽略的列名,如单纯的注释列
+func (co *CsvOption) IgnoreColumn(columnNames ...string) {
+	if co.ignoreColumns == nil {
+		co.ignoreColumns = make(map[string]struct{})
+	}
+	for _, columnName := range columnNames {
+		co.ignoreColumns[columnName] = struct{}{}
+	}
 }
 
 type IntOrString interface {
